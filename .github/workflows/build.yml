@@ -1,0 +1,32 @@
+name: Build APKs
+on:
+  workflow_dispatch:
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
+      - name: Find project
+        run: |
+          if [ -f HarshWiFiGamepad.zip ]; then unzip -q -o HarshWiFiGamepad.zip; fi
+          if [ -f HarshWiFiGamepad/settings.gradle.kts ]; then echo "PROJ=HarshWiFiGamepad" >> $GITHUB_ENV; else echo "PROJ=." >> $GITHUB_ENV; fi
+      - name: Build debug APKs
+        run: cd "$PROJ" && gradle :controller:assembleDebug :tvreceiver:assembleDebug --no-daemon
+      - name: Collect APKs
+        run: |
+          mkdir -p apks
+          cp "$PROJ"/controller/build/outputs/apk/debug/controller-debug.apk apks/
+          cp "$PROJ"/tvreceiver/build/outputs/apk/debug/tvreceiver-debug.apk apks/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HARSH-WiFi-Gamepad-APKs
+          path: apks/*.apk
